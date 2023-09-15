@@ -10,7 +10,7 @@ import streamlit as st
 import string
 import base64
 import zlib
-import requests
+import os
 
 maketrans = bytes.maketrans
 plantuml_alphabet = string.digits + string.ascii_uppercase + string.ascii_lowercase + '-_'
@@ -30,15 +30,17 @@ with st.sidebar:
   database = st.selectbox("Database you use:",('MySql','Postgres'))
   btn_reset = st.button("RESTART")
   if btn_reset:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you in designing database ?"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "How may I assist you with your database design?"}]
     st.session_state["last_schema"] = ""
 
-openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.")
-    st.stop()
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None:
+  openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+  if not openai_api_key:
+      st.info("Please add your OpenAI API key to continue.")
+      st.stop()
     
-llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0)
+llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0, streaming=False)
 
 def plantuml_encode(plantuml_text):
     """zlib compress the plantuml text and encode it for the plantuml server"""
@@ -89,7 +91,7 @@ CREATE TABLE `table` (
 You will continue to update this schema {history}
 """
 
-user_prompting = "{message}. You update Schema and response in full Schema with include previous schema if had. You DO NOT use Alter table. You DO NOT write explanations"
+user_prompting = "{message}. You update Schema and response in full Schema. You DO NOT use Alter table. You DO NOT write explanations"
 
 prompt = ChatPromptTemplate(
     messages=[
@@ -114,31 +116,48 @@ conversation = LLMChain(
 
 # init messages
 if "messages" not in st.session_state:
-  st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you in designing database ?"}]
+  st.session_state["messages"] = [{"role": "assistant", "content": "How may I assist you with your database design?"}]
   st.session_state["last_schema"] = ""
-  
+
+prompt = st.chat_input()  
 # render messages chat
 for msg in st.session_state["messages"]:
   with st.chat_message(msg["role"]):
     st.write(msg["content"])
-  
+    if msg["role"] == "assistant" and len(st.session_state["messages"]) == 1: 
+      bt1 = st.button("create database to manage a bookstore")
+      bt2 = st.button("create table users, allow user to register and login")
+      bt3 = st.button("create database has users, comments, posts")
+      st.write("Or write your idea in message box...")
+      if bt1:
+        prompt = "create database to manage a bookstore"
+      elif bt2: 
+        prompt = "create table users, allow user to register and login"
+      elif bt3:
+        prompt = "create database has users, comments, posts"
+      
 # handle input of user
-if prompt := st.chat_input():
-    st.chat_message("user").write(prompt)
-    with st.chat_message("assistant"):
-        st_callback = StreamlitCallbackHandler(st.container())
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # response = chain.run(database=database,request=prompt,history=get_history(st.session_state["messages"]))
-        response = conversation.run(message=prompt,database=database,history=st.session_state["last_schema"])
-        content, uml = process_response(response)
-        st.write(content)
-        st.session_state["last_schema"] = content
-        # if img := render_image(response):
-        #   st.image(img.content,caption="Diagram is from plantuml.com")
-        st.session_state.messages.append({"role": "assistant", "content": content})
-        # with st.expander("See diagram"):
-          # convert content to plantuml 
-          
-          
-          # st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
-          # st.text(uml)
+if prompt:
+  st.chat_message("user").write(prompt)
+  with st.chat_message("assistant"):
+    st_callback = StreamlitCallbackHandler(st.empty())
+    
+    # response = chain.run(database=database,request=prompt,history=get_history(st.session_state["messages"]))
+    with st.spinner("Thinking...."):
+      response = conversation.run(message=prompt,database=database,history=st.session_state["last_schema"])
+    
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # content, uml = process_response(response)
+    content = response
+    st.write(content)
+    st.caption("You can message me to add more tables, create new columns in existing tables, modify column types, or make changes to relationships.")
+    st.session_state["last_schema"] = content
+    # if img := render_image(response):
+    #   st.image(img.content,caption="Diagram is from plantuml.com")
+    st.session_state.messages.append({"role": "assistant", "content": content})
+    # with st.expander("See diagram"):
+      # convert content to plantuml 
+      
+      
+      # st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
+      # st.text(uml)
