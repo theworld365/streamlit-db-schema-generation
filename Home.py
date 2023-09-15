@@ -39,21 +39,24 @@ if openai_api_key is None:
   if not openai_api_key:
       st.info("Please add your OpenAI API key to continue.")
       st.stop()
-    
+
 llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0, streaming=False)
 
-def plantuml_encode(plantuml_text):
-    """zlib compress the plantuml text and encode it for the plantuml server"""
-    zlibbed_str = zlib.compress(plantuml_text.encode('utf-8'))
-    compressed_string = zlibbed_str[2:-4]
-    return base64.b64encode(compressed_string).translate(b64_to_plantuml).decode('utf-8')
+# def plantuml_encode(plantuml_text):
+#     """zlib compress the plantuml text and encode it for the plantuml server"""
+#     zlibbed_str = zlib.compress(plantuml_text.encode('utf-8'))
+#     compressed_string = zlibbed_str[2:-4]
+#     return base64.b64encode(compressed_string).translate(b64_to_plantuml).decode('utf-8')
 
-def plantuml_decode(plantuml_url):
-    """decode plantuml encoded url back to plantuml text"""
-    data = base64.b64decode(plantuml_url.translate(plantuml_to_b64).encode("utf-8"))
-    dec = zlib.decompressobj() # without check the crc.
-    header = b'x\x9c'
-    return dec.decompress(header + data).decode("utf-8")
+# def plantuml_decode(plantuml_url):
+#     """decode plantuml encoded url back to plantuml text"""
+#     data = base64.b64decode(plantuml_url.translate(plantuml_to_b64).encode("utf-8"))
+#     dec = zlib.decompressobj() # without check the crc.
+#     header = b'x\x9c'
+#     return dec.decompress(header + data).decode("utf-8")
+
+def dbml_decode(str):
+    return base64.urlsafe_b64encode(zlib.compress(str.encode('utf-8'), 9)).decode('ascii')
 
 def get_history(messages):
   resp = ""
@@ -69,7 +72,7 @@ def process_response(msg):
   if start_uml != -1 and end_uml != -1:
     uml = msg[start_uml: end_uml]
     start_uml = msg.find("PlantUML:")
-    content = msg[0:start_uml] 
+    content = msg[0:start_uml]
   return content, uml
 
 template_promting = """
@@ -82,7 +85,7 @@ The answer is below format
 CREATE TABLE `table` (
   `id` INT AUTO_INCREMENT NOT NULL, -- important
   /* other fields */
-  
+
   PRIMARY KEY
   FOREIGN KEY
 );
@@ -109,6 +112,52 @@ conversation = LLMChain(
     prompt=prompt,
     verbose=True
 )
+
+dbml_template_promting= """
+Convert the SQL schema
+```
+{sql}
+```
+to dbml ( Database Markup Language) as format below
+```
+//DBML here
+Table users {{
+  id int [primary key]
+  ...
+}}
+Table country {{
+ code int
+ name varchar
+ ...
+}}
+// relationships at the bottom
+Ref: countries.code < users.country;
+```
+Important notes:
+- DO NOT add foreign key in tables
+- In case of many primary key in one table, you export as format bellow. DO NOT use other format for this case
+  ```
+  Table follow {{
+   ...
+   followee_id int [primary key]
+   follower_id int [primary key]
+  }}
+  ```
+- Extract relationships from SQL schema then add in the comment 'add the relationship at the bottom'
+- You just show the dbml source, do not explain more
+"""
+dbml_prompt = ChatPromptTemplate(
+    messages=[
+        SystemMessagePromptTemplate.from_template(
+            dbml_template_promting
+        ),
+    ]
+)
+unml_conversation = LLMChain(
+    llm=llm,
+    prompt=dbml_prompt,
+    verbose=True
+)
 # set database type
 # database = "Mysql 8.0"
 
@@ -119,33 +168,33 @@ if "messages" not in st.session_state:
   st.session_state["messages"] = [{"role": "assistant", "content": "How may I assist you with your database design?"}]
   st.session_state["last_schema"] = ""
 
-prompt = st.chat_input()  
+prompt = st.chat_input()
 # render messages chat
 for msg in st.session_state["messages"]:
   with st.chat_message(msg["role"]):
     st.write(msg["content"])
-    if msg["role"] == "assistant" and len(st.session_state["messages"]) == 1: 
+    if msg["role"] == "assistant" and len(st.session_state["messages"]) == 1:
       bt1 = st.button("create database to manage a bookstore")
       bt2 = st.button("create table users, allow user to register and login")
       bt3 = st.button("create database has users, comments, posts")
       st.write("Or write your idea in message box...")
       if bt1:
         prompt = "create database to manage a bookstore"
-      elif bt2: 
+      elif bt2:
         prompt = "create table users, allow user to register and login"
       elif bt3:
         prompt = "create database has users, comments, posts"
-      
+
 # handle input of user
 if prompt:
   st.chat_message("user").write(prompt)
   with st.chat_message("assistant"):
     st_callback = StreamlitCallbackHandler(st.empty())
-    
+
     # response = chain.run(database=database,request=prompt,history=get_history(st.session_state["messages"]))
     with st.spinner("Thinking...."):
       response = conversation.run(message=prompt,database=database,history=st.session_state["last_schema"])
-    
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     # content, uml = process_response(response)
     content = response
@@ -155,9 +204,16 @@ if prompt:
     # if img := render_image(response):
     #   st.image(img.content,caption="Diagram is from plantuml.com")
     st.session_state.messages.append({"role": "assistant", "content": content})
-    # with st.expander("See diagram"):
-      # convert content to plantuml 
-      
-      
+    with st.expander("See diagram"):
+      # convert content to plantuml
+      sql = content.split('```')[1]
+      if sql:
+        uml_response = unml_conversation.run(sql=sql)
+        # print(f"uml_response: {uml_response}")
+        # print(f"uml_response: {dbml_decode(uml_response)}")
+        st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)))
+      # st.text(uml)
+
+
       # st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
       # st.text(uml)
