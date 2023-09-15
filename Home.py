@@ -23,7 +23,12 @@ st.set_page_config(
     layout="wide"
 )
 
-llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0)
+openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+if not openai_api_key:
+    st.info("Please add your OpenAI API key to continue.")
+    st.stop()
+    
+llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0)
 
 def plantuml_encode(plantuml_text):
     """zlib compress the plantuml text and encode it for the plantuml server"""
