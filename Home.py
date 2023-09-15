@@ -23,7 +23,7 @@ st.set_page_config(
     layout="wide"
 )
 
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", streaming=True)
+llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0)
 
 def plantuml_encode(plantuml_text):
     """zlib compress the plantuml text and encode it for the plantuml server"""
