@@ -17,7 +17,6 @@ import string
 import base64
 import zlib
 import requests
-import ga
 
 maketrans = bytes.maketrans
 plantuml_alphabet = string.digits + string.ascii_uppercase + string.ascii_lowercase + '-_'
@@ -29,7 +28,6 @@ st.set_page_config(
     page_title="TEQ AI - DB Schema generator",
     layout="wide"
 )
-ga.add_analytics_tag()
 
 llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-16k", streaming=True)
 
