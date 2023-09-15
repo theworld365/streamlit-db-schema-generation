@@ -1,16 +1,10 @@
-from langchain.llms import OpenAI
 from langchain.chains.llm import LLMChain
-from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
     ChatPromptTemplate,
-    MessagesPlaceholder,
     SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-    PromptTemplate
+    HumanMessagePromptTemplate
 )
 import streamlit as st
 import string
