@@ -23,6 +23,16 @@ st.set_page_config(
     layout="wide"
 )
 
+with st.sidebar:
+  st.image(image ="https://teqnological.asia/images/companyLogo.webp", width=240)
+  "[Teqnological Asia - AI Team](https://teqnological.asia)"
+  "Contact us: ai-team@teqnological.asia"
+  database = st.selectbox("Database you use:",('MySQL 5.7', 'MySQL 8.0', 'Postgres 12','Postgres 13','Postgres 14','Postgres 15'))
+  btn_reset = st.button("RESTART")
+  if btn_reset:
+    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you in designing database ?"}]
+    st.session_state["last_schema"] = ""
+
 openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
 if not openai_api_key:
     st.info("Please add your OpenAI API key to continue.")
@@ -61,20 +71,22 @@ def process_response(msg):
   return content, uml
 
 template_promting = """
-Act as a database engineer. You'll only respond to me SQL code that I can use in a {database} database. I will describe what I want in plain English and you will respond with the database schema which I can use to create the database. This is a relational database so you should de-normalise the tables and add relationships where appropriate.
-After creating SQL code, convert it to plantUML code (http://www.plantuml.com), the codes must be forced by listed rules:
-  - The definition of Primary key  is ```!define PK PRIMARY KEY``` and the definition of ForeignKey is ```!define FK FOREIGN KEY ```
-  - Use Version 1.2023 or higher.
-  - Do not incorporate other resources.
+Act as a database engineer. You'll only respond to me SQL schema code that I can use in {database} database. I will describe what I want in plain English and you will respond with the database schema which I can use to create the database. This is a relational database so you should de-normalise the tables and add relationships where appropriate.
 Do not write any explanations. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 The answer is below format
-SQLSchema: (show SQL schema in markdown below)
-PlantUML: (show PlantUML code markdown below)
+Schema: 
+```sql
+-- table name
+CREATE TABLE `table` (
+  `id` INT AUTO_INCREMENT NOT NULL, -- important
+  /* other fields */
+);
+```
 
-You will use this previous {history}
+You will continue to update this schema {history}
 """
 
-user_prompting = "{message}. You update SQL Schema and response full SQL Schema, DO NOT use Alter table"
+user_prompting = "{message}. You update Schema and response in full Schema with include previous schema if had. You DO NOT use Alter table"
 
 prompt = ChatPromptTemplate(
     messages=[
@@ -93,7 +105,7 @@ conversation = LLMChain(
     verbose=True
 )
 # set database type
-database = "Mysql 8.0"
+# database = "Mysql 8.0"
 
 # st.markdown(uml_code)
 
@@ -122,5 +134,8 @@ if prompt := st.chat_input():
         #   st.image(img.content,caption="Diagram is from plantuml.com")
         st.session_state.messages.append({"role": "assistant", "content": content})
         with st.expander("See diagram"):
-          img = requests.get('https://plantuml.com/plantuml/png/{0}'.format(plantuml_encode(uml)))
-          st.image(img.content, width=450)
+          # convert content to plantuml 
+          
+          
+          st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
+          # st.text(uml)
