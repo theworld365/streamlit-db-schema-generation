@@ -27,7 +27,7 @@ with st.sidebar:
   st.image(image ="https://teqnological.asia/images/companyLogo.webp", width=240)
   "[Teqnological Asia - AI Team](https://teqnological.asia)"
   "Contact us: ai-team@teqnological.asia"
-  database = st.selectbox("Database you use:",('MySQL 5.7', 'MySQL 8.0', 'Postgres 12','Postgres 13','Postgres 14','Postgres 15'))
+  database = st.selectbox("Database you use:",('MySql','Postgres'))
   btn_reset = st.button("RESTART")
   if btn_reset:
     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you in designing database ?"}]
@@ -74,19 +74,22 @@ template_promting = """
 Act as a database engineer. You'll only respond to me SQL schema code that I can use in {database} database. I will describe what I want in plain English and you will respond with the database schema which I can use to create the database. This is a relational database so you should de-normalise the tables and add relationships where appropriate.
 Do not write any explanations. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 The answer is below format
-Schema: 
+
 ```sql
 -- table name
 CREATE TABLE `table` (
   `id` INT AUTO_INCREMENT NOT NULL, -- important
   /* other fields */
+  
+  PRIMARY KEY
+  FOREIGN KEY
 );
 ```
 
 You will continue to update this schema {history}
 """
 
-user_prompting = "{message}. You update Schema and response in full Schema with include previous schema if had. You DO NOT use Alter table"
+user_prompting = "{message}. You update Schema and response in full Schema with include previous schema if had. You DO NOT use Alter table. You DO NOT write explanations"
 
 prompt = ChatPromptTemplate(
     messages=[
@@ -133,9 +136,9 @@ if prompt := st.chat_input():
         # if img := render_image(response):
         #   st.image(img.content,caption="Diagram is from plantuml.com")
         st.session_state.messages.append({"role": "assistant", "content": content})
-        with st.expander("See diagram"):
+        # with st.expander("See diagram"):
           # convert content to plantuml 
           
           
-          st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
+          # st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
           # st.text(uml)
