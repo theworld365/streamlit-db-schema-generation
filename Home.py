@@ -25,13 +25,16 @@ st.set_page_config(
 
 with st.sidebar:
   st.image(image ="https://teqnological.asia/images/companyLogo.webp", width=240)
-  "[Teqnological Asia - AI Team](https://teqnological.asia)"
-  "Contact us: ai-team@teqnological.asia"
+  "Website: [Teqnological Asia](https://teqnological.asia)"
+  "Email: ai-team@teqnological.asia"
+  st.divider()
+  st.write("This chatbot is here to assist you in creating a database schema. You can review the diagram as we chat, and feel free to request updates to the schema, such as adding tables, incorporating new columns, modifying existing columns, or any other changes you need. Your feedback is highly appreciated!")
   database = st.selectbox("Database you use:",('MySql','Postgres'))
   btn_reset = st.button("RESTART")
   if btn_reset:
     st.session_state["messages"] = [{"role": "assistant", "content": "How may I assist you with your database design?"}]
     st.session_state["last_schema"] = ""
+  st.divider()
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if openai_api_key is None:
@@ -41,19 +44,6 @@ if openai_api_key is None:
       st.stop()
 
 llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0, streaming=False)
-
-# def plantuml_encode(plantuml_text):
-#     """zlib compress the plantuml text and encode it for the plantuml server"""
-#     zlibbed_str = zlib.compress(plantuml_text.encode('utf-8'))
-#     compressed_string = zlibbed_str[2:-4]
-#     return base64.b64encode(compressed_string).translate(b64_to_plantuml).decode('utf-8')
-
-# def plantuml_decode(plantuml_url):
-#     """decode plantuml encoded url back to plantuml text"""
-#     data = base64.b64decode(plantuml_url.translate(plantuml_to_b64).encode("utf-8"))
-#     dec = zlib.decompressobj() # without check the crc.
-#     header = b'x\x9c'
-#     return dec.decompress(header + data).decode("utf-8")
 
 def dbml_decode(str):
     return base64.urlsafe_b64encode(zlib.compress(str.encode('utf-8'), 9)).decode('ascii')
@@ -77,24 +67,23 @@ def process_response(msg):
 
 template_promting = """
 Act as a database engineer. You'll only respond to me SQL schema code that I can use in {database} database. I will describe what I want in plain English and you will respond with the database schema which I can use to create the database. This is a relational database so you should de-normalise the tables and add relationships where appropriate.
+
+You extend this base schema:
+{history}
+
 Do not write any explanations. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-The answer is below format
+You ALWAY answer as following format:
 
 ```sql
 -- table name
 CREATE TABLE `table` (
   `id` INT AUTO_INCREMENT NOT NULL, -- important
-  /* other fields */
-
-  PRIMARY KEY
-  FOREIGN KEY
+  /* other fields and definations */
 );
 ```
-
-You will continue to update this schema {history}
 """
 
-user_prompting = "{message}. You update Schema and response in full Schema. You DO NOT use Alter table. You DO NOT write explanations"
+user_prompting = "{message}. You update Schema and response full Schema. You DO NOT use Alter table. You DO NOT write explanations. You DO NOT write the updated, write full schema please."
 
 prompt = ChatPromptTemplate(
     messages=[
@@ -143,6 +132,7 @@ Important notes:
    follower_id int [primary key]
   }}
   ```
+- In case of field like `decimal(8, 6)`, you should write `decimal`
 - Extract relationships from SQL schema then add in the comment 'add the relationship at the bottom'
 - You just show the dbml source, do not explain more
 """
@@ -199,21 +189,28 @@ if prompt:
     # content, uml = process_response(response)
     content = response
     st.write(content)
-    st.caption("You can message me to add more tables, create new columns in existing tables, modify column types, or make changes to relationships.")
     st.session_state["last_schema"] = content
     # if img := render_image(response):
     #   st.image(img.content,caption="Diagram is from plantuml.com")
     st.session_state.messages.append({"role": "assistant", "content": content})
-    with st.expander("See diagram"):
-      # convert content to plantuml
-      sql = content.split('```')[1]
-      if sql:
-        uml_response = unml_conversation.run(sql=sql)
-        # print(f"uml_response: {uml_response}")
-        # print(f"uml_response: {dbml_decode(uml_response)}")
-        st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)))
-      # st.text(uml)
-
-
-      # st.image(image='https://plantuml.com/plantuml/svg/{0}'.format(plantuml_encode(uml)))
-      # st.text(uml)
+    with st.spinner("Generating diagram...."):
+      with st.expander("See diagram"):
+        # convert content to plantuml
+        sql = content.split('```')[1]
+        if sql:
+          uml_response = unml_conversation.run(sql=sql)
+          st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)),width=560)
+    
+    st.download_button(
+      label="Download SQL file",
+      data=response.replace("```sql","").replace("```",""),
+      file_name='my-db.sql',
+      mime='text/sql',
+    )
+    st.download_button(
+      label="Download DBML file",
+      data=uml_response,
+      file_name='my-db.dbml',
+      mime='text/dbml',
+    )
+    st.caption("You can message me to add more tables, create new columns in existing tables, modify column types, or make changes to relationships.")
