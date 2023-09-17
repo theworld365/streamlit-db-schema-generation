@@ -124,7 +124,7 @@ Ref: countries.code < users.country;
 ```
 Important notes:
 - DO NOT add foreign key in tables
-- In case of `[primary key] (column_a,column_b)`, remove them completely.
+- In case of `PRIMARY KEY (column_a,column_b)`, ignored them completely.
 - In case of field like `decimal(8, 6)`, you should write `decimal`
 - Extract relationships from SQL schema then add in the comment 'add the relationship at the bottom'
 - You just show the dbml source, do not explain more
