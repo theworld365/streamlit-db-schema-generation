@@ -124,6 +124,7 @@ Ref: countries.code < users.country;
 ```
 Important notes:
 - DO NOT add foreign key in tables
+- DO NOT add indexes in DBML
 - In case of `PRIMARY KEY (column_a,column_b)`, ignored them completely.
 - In case of field like `decimal(8, 6)`, you should write `decimal`
 - Extract relationships from SQL schema then add in the comment 'add the relationship at the bottom'
@@ -193,7 +194,7 @@ if prompt:
         if sql:
           uml_response = unml_conversation.run(sql=sql)
           st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)),width=560)
-    
+
     st.download_button(
       label="Download SQL file",
       data=response.replace("```sql","").replace("```",""),
