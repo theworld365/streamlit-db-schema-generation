@@ -28,7 +28,8 @@ with st.sidebar:
   "Website: [Teqnological Asia](https://teqnological.asia)"
   "Email: ai-team@teqnological.asia"
   st.divider()
-  st.write("This chatbot is here to assist you in creating a database schema. You can review the diagram as we chat, and feel free to request updates to the schema, such as adding tables, incorporating new columns, modifying existing columns, or any other changes you need. Your feedback is highly appreciated!")
+  "This chatbot is here to assist you in creating a database schema. You can review the diagram as we chat, and feel free to request updates to the schema, such as adding tables, incorporating new columns, modifying existing columns, or any other changes you need. Your feedback is highly appreciated!"
+  "[Check-out video demo here!](https://www.youtube.com/watch?v=R4EjtUjqUs8)"
   database = st.selectbox("Database you use:",('MySql','Postgres'))
   btn_reset = st.button("RESTART")
   if btn_reset:
@@ -37,6 +38,9 @@ with st.sidebar:
   st.divider()
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None and "OPENAI_API_KEY" in st.secrets.keys(): 
+  openai_api_key = st.secrets["OPENAI_API_KEY"]
+  
 if openai_api_key is None:
   openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
   if not openai_api_key:
