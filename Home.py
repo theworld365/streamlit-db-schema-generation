@@ -191,13 +191,18 @@ if prompt:
     # if img := render_image(response):
     #   st.image(img.content,caption="Diagram is from plantuml.com")
     st.session_state.messages.append({"role": "assistant", "content": content})
+    
     with st.spinner("Generating diagram...."):
       with st.expander("See diagram"):
         # convert content to plantuml
-        sql = content.split('```')[1]
-        if sql:
-          uml_response = unml_conversation.run(sql=sql)
-          st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)),width=560)
+        try:
+          sql = content.split('```')[1]
+          if sql:
+            uml_response = unml_conversation.run(sql=sql)
+            st.image(image='https://kroki.io/dbml/svg/{0}'.format(dbml_decode(uml_response)),width=560)
+        except:
+          st.write("Something wrong! We'll try again in next request")
+          pass 
 
     st.download_button(
       label="Download SQL file",
