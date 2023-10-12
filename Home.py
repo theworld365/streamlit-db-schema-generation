@@ -1,6 +1,6 @@
 from langchain.chains.llm import LLMChain
 from langchain.callbacks import StreamlitCallbackHandler
-from langchain.chat_models import AzureChatOpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain.prompts import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
@@ -37,29 +37,29 @@ with st.sidebar:
     st.session_state["last_schema"] = ""
   st.divider()
 
-# openai_api_key = os.getenv("OPENAI_API_KEY")
-# if openai_api_key is None and "OPENAI_API_KEY" in st.secrets.keys(): 
-#   openai_api_key = st.secrets["OPENAI_API_KEY"]
+openai_api_key = os.getenv("OPENAI_API_KEY")
+if openai_api_key is None and "OPENAI_API_KEY" in st.secrets.keys(): 
+  openai_api_key = st.secrets["OPENAI_API_KEY"]
 
   
-BASE_URL = st.secrets["AZURE_OPENAI_ENDPOINT"]
-API_KEY = st.secrets["AZURE_OPENAI_KEY"]
-DEPLOYMENT_NAME = "demo-gpt-35"
-llm = AzureChatOpenAI(
-    openai_api_base=BASE_URL,
-    openai_api_version="2023-05-15",
-    deployment_name=DEPLOYMENT_NAME,
-    openai_api_key=API_KEY,
-    openai_api_type="azure",
-)
+# BASE_URL = st.secrets["AZURE_OPENAI_ENDPOINT"]
+# API_KEY = st.secrets["AZURE_OPENAI_KEY"]
+# DEPLOYMENT_NAME = "demo-gpt-35"
+# llm = AzureChatOpenAI(
+#     openai_api_base=BASE_URL,
+#     openai_api_version="2023-05-15",
+#     deployment_name=DEPLOYMENT_NAME,
+#     openai_api_key=API_KEY,
+#     openai_api_type="azure",
+# )
   
-# if openai_api_key is None:
-#   openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
-#   if not openai_api_key:
-#       st.info("Please add your OpenAI API key to continue.")
-#       st.stop()
+if openai_api_key is None:
+  openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password")
+  if not openai_api_key:
+      st.info("Please add your OpenAI API key to continue.")
+      st.stop()
 
-# llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0, streaming=False)
+llm = ChatOpenAI(model="gpt-3.5-turbo-16k", openai_api_key=openai_api_key, temperature=0, streaming=False)
 
 def dbml_decode(str):
     return base64.urlsafe_b64encode(zlib.compress(str.encode('utf-8'), 9)).decode('ascii')
