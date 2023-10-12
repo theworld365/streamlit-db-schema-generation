@@ -42,8 +42,8 @@ with st.sidebar:
 #   openai_api_key = st.secrets["OPENAI_API_KEY"]
 
   
-BASE_URL = st.secrets("AZURE_OPENAI_ENDPOINT")
-API_KEY = st.secrets("AZURE_OPENAI_KEY")
+BASE_URL = st.secrets["AZURE_OPENAI_ENDPOINT"]
+API_KEY = st.secrets["AZURE_OPENAI_KEY"]
 DEPLOYMENT_NAME = "demo-gpt-35"
 llm = AzureChatOpenAI(
     openai_api_base=BASE_URL,
